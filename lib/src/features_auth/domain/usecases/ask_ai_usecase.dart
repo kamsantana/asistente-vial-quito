@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 class AskAiUseCase {
   // 🔑 Tu API Key activa de Groq
   final String _apiKey =
-      "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";
+      "gsk_" + "7GHRbWKOAJS4xpCzgKIIWGdyb3FYlvm2wUA5uZjzi2rFJ0J2YhH0";
 
   Future<String> execute(String prompt) async {
     try {

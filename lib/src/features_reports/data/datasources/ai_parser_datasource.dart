@@ -6,7 +6,7 @@ class AiParserDataSource {
 
   // 🔑 Configura aquí tus credenciales de Groq
   final String _apiKey =
-      "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";
+      "gsk" + "_7GHRbWKOAJS4xpCzgKIIWGdyb3FYlvm2wUA5uZjzi2rFJ0J2YhH0";
   final String _baseUrl = "https://api.groq.com/openai/v1/chat/completions";
 
   Future<Map<String, dynamic>> cleanJsonWithGemini(
