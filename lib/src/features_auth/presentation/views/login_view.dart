@@ -32,8 +32,9 @@ class _LoginViewState extends State<LoginView> {
     if (_formKey.currentState!.validate()) {
       final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
 
-      // Ejecutamos el login a través del Notifier
+      // Enviamos 'context' como primer parámetro
       await authNotifier.login(
+        context,
         _emailController.text.trim(),
         _passwordController.text,
       );
@@ -47,11 +48,15 @@ class _LoginViewState extends State<LoginView> {
             MaterialPageRoute(builder: (context) => const HomeView()),
           );
         } else if (authNotifier.status == AuthStatus.error) {
-          // Si falla, mostramos el error que viene del servidor simulado
+          // Si falla, mostramos el error original del servidor o caso de uso
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(authNotifier.errorMessage ?? 'Error desconocido'),
               backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           );
         }
@@ -165,35 +170,41 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   const SizedBox(height: 30),
 
-                  // Botón Dinámico (Cambia a progreso si está cargando)
-                  ElevatedButton(
-                    onPressed: isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            'INGRESAR',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                            ),
+                  // 🛠️ BOTÓN CORREGIDO: Enuelto en Center y SizedBox para limitar su tamaño horizontal
+                  Center(
+                    child: SizedBox(
+                      width:
+                          300, // Ancho fijo perfecto para cualquier smartphone
+                      height: 50, // Altura estándar ergonómica
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : _submit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          elevation: 2,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'INGRESAR',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
 
@@ -204,7 +215,6 @@ class _LoginViewState extends State<LoginView> {
                       const Text("¿No tienes una cuenta? "),
                       GestureDetector(
                         onTap: () {
-                          // Permite navegar a la pantalla de registro
                           Navigator.push(
                             context,
                             MaterialPageRoute(

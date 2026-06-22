@@ -2,11 +2,19 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AskAiUseCase {
-  // 🔑 Tu API Key activa de Groq
-  final String _apiKey =
-      "gsk_" + "7GHRbWKOAJS4xpCzgKIIWGdyb3FYlvm2wUA5uZjzi2rFJ0J2YhH0";
+  // 🔑 SEGURO: Eliminamos la clave hardcoded del defaultValue.
+  // Ahora lee directamente la variable desde el config.json compilado.
+  final String _apiKey = const String.fromEnvironment('GROQ_API_KEY');
 
   Future<String> execute(String prompt) async {
+    // Validación preventiva por si olvidas pasar el comando en consola
+    if (_apiKey.isEmpty) {
+      print(
+        "⚠️ Alerta: La variable 'GROQ_API_KEY' está vacía en AskAiUseCase. Revisa tu config.json",
+      );
+      return "Error del sistema: Falta la configuración de la clave de IA.";
+    }
+
     try {
       final url = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
 
@@ -36,10 +44,15 @@ class AskAiUseCase {
         body: body,
       );
 
-      // 🛠️ CAPTURA DE DIAGNÓSTICO EN CONSOLA
-      if (response.statusCode == 400) {
-        print("❌ ¡GROQ DEVOLVIÓ ERROR 400!");
-        print("👉 DETALLE EXACTO DEL ERROR: ${response.body}");
+      // 🛠️ DIAGNÓSTICO COMPLETO DE ERRORES
+      if (response.statusCode != 200) {
+        print("❌ ¡GROQ DEVOLVIÓ ERROR Code ${response.statusCode}!");
+        print("👉 DETALLE EXACTO: ${response.body}");
+
+        final decodedBody = jsonDecode(response.body);
+        if (decodedBody['error'] != null) {
+          return "Error de configuración de IA: ${decodedBody['error']['message']}";
+        }
       }
 
       if (response.statusCode == 200) {
@@ -47,7 +60,7 @@ class AskAiUseCase {
         final String textResponse = data['choices'][0]['message']['content'];
         return textResponse;
       } else {
-        return "Error del servidor alternativo (Código ${response.statusCode}): ${response.body}";
+        return "No se pudo obtener respuesta del asistente (Código ${response.statusCode})";
       }
     } catch (e) {
       print("❌ Fallo crítico en el bloque try-catch: $e");

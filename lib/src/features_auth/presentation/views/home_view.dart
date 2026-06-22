@@ -5,7 +5,11 @@ import '../../domain/usecases/ask_ai_usecase.dart';
 import 'login_view.dart';
 import 'package:asitente_vial/src/features_reports/presentation/views/report_view.dart';
 
-// ✅ PASO 1: COLORES GLOBALES
+// IMPORTS DE TUS VISTAS REALES
+import 'vehiculo_view.dart';
+import 'notificaciones_view.dart';
+import 'perfil_view.dart';
+
 const Color primaryColor = Color(0xFF0F3077); // Azul profundo Quito
 const Color accentColor = Color(0xFFE30613); // Rojo corporativo
 const Color greenColor = Color(0xFF2E7D32); // Verde operativo
@@ -41,6 +45,24 @@ class _HomeViewState extends State<HomeView> {
     final driverName = authNotifier.currentDriver?.name ?? "Conductor";
     final driverPlate = authNotifier.currentDriver?.licensePlate ?? "S/P";
 
+    // 🗺️ ASIGNACIÓN DE VISTAS REALES AL BOTTOM NAVIGATION BAR
+    final List<Widget> _paginasBottomNav = [
+      // Índice 0: Inicio Principal (Panel con pestañas y chat IA)
+      _buildPanelInicioPrincipal(driverPlate, driverName),
+
+      // Índice 1: Vehículo
+      VehiculoView(driverPlate: driverPlate),
+
+      // Índice 2: Mapa / Reportes Reales
+      const ReportView(),
+
+      // Índice 3: Notificaciones
+      const NotificacionesView(),
+
+      // Índice 4: Perfil Completo
+      PerfilView(driverName: driverName),
+    ];
+
     return Scaffold(
       backgroundColor: backgroundColor,
 
@@ -66,7 +88,6 @@ class _HomeViewState extends State<HomeView> {
           ],
         ),
         actions: [
-          // 🚀 BOTÓN TEMPORAL DE PRUEBA PARA NAVEGAR A LOS REPORTES IA
           IconButton(
             icon: const Icon(Icons.auto_awesome, color: Colors.amber, size: 26),
             tooltip: 'Probar Reportes Groq',
@@ -82,10 +103,13 @@ class _HomeViewState extends State<HomeView> {
             icon: const Icon(Icons.logout_rounded, color: accentColor),
             tooltip: 'Cerrar Sesión',
             onPressed: () {
-              context.read<AuthNotifier>().logout();
-              Navigator.pushReplacement(
+              context.read<AuthNotifier>().logout(context);
+
+              // Limpiamos el stack de navegación para que no puedan regresar usando el botón físico
+              Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const LoginView()),
+                (route) => false,
               );
             },
           ),
@@ -93,228 +117,10 @@ class _HomeViewState extends State<HomeView> {
         ],
       ),
 
-      // 2. CUERPO DE LA APLICACIÓN
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // --- PESTAÑAS DE NAVEGACIÓN RÁPIDA ---
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildTabItem("MI VEHÍCULO"),
-                  _buildTabItem("TURNOS"),
-                  _buildTabItem("ALERTAS"),
-                  _buildTabItem("PERFIL"),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+      // 2. CUERPO DE LA APLICACIÓN DINÁMICA
+      body: _paginasBottomNav[_actualIndex],
 
-            // --- RENDERIZADO DINÁMICO SEGÚN LA PESTAÑA ACTIVA ---
-            if (_selectedTab == "MI VEHÍCULO") ...[
-              // Tarjeta 1: Estado del auto
-              Card(
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Estado Vehicular",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          Icon(Icons.check_circle, color: greenColor, size: 24),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: greenColor,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          "VEHÍCULO OPERATIVO",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.1,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildDataRow("Placa:", driverPlate),
-                      _buildDataRow("Año/Modelo:", "2023 / Nissan Versa"),
-                      _buildDataRow("Propietario:", driverName),
-                      _buildDataRow("Último Mantenimiento:", "15 Oct 2025"),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 100, top: 2),
-                        child: Text(
-                          "(Próximo: 15 Dic 2026 - Aceite)",
-                          style: TextStyle(fontSize: 11, color: Colors.orange),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Tarjeta 2: Turnos asignados
-              Card(
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Turnos de Hoy",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "• Turno A: 08:00 - 14:00",
-                                style: TextStyle(color: Colors.black87),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                "• Turno B: 09:00 - 14:00",
-                                style: TextStyle(color: Colors.black87),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                "• Turno C: 12:00 - 18:00",
-                                style: TextStyle(color: Colors.black87),
-                              ),
-                            ],
-                          ),
-                          // 🛠️ CORRECCIÓN: Ahora el botón navega directamente a la pantalla de reportes
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ReportView(),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryColor,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              "Ver Mapa\nDetallado",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Tarjeta 3: Alertas del sistema
-              Card(
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Alertas Recientes",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildAlertTile(
-                        Icons.traffic_rounded,
-                        "Traffic: Av. Amazonas congestionado",
-                        "10m ago",
-                      ),
-                      const Divider(height: 16),
-                      _buildAlertTile(
-                        Icons.health_and_safety_rounded,
-                        "Safety: Recuerda usar el cinturón",
-                        "1h ago",
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ] else ...[
-              // Manejo dinámico para las otras pestañas
-              if (_selectedTab == "TURNOS")
-                _buildModulosPlaceholder(
-                  "Gestión de Cronogramas",
-                  "No registras más turnos complementarios asignados para esta semana.",
-                ),
-              if (_selectedTab == "ALERTAS")
-                _buildModulosPlaceholder(
-                  "Reportes Viales AMT",
-                  "Historial consolidado de contraflujos activos, obras civiles y fotomultas en Quito.",
-                ),
-              if (_selectedTab == "PERFIL")
-                _buildModulosPlaceholder(
-                  "Datos Institucionales",
-                  "Licencia Tipo: E Profesional\nPuntos de Control: 30/30 Vigentes\nEntidad: Agencia Metropolitana de Tránsito.",
-                ),
-            ],
-
-            const SizedBox(height: 16),
-
-            // --- SECCIÓN DE INTELIGENCIA ARTIFICIAL ---
-            _buildCardAsistenteIA(),
-          ],
-        ),
-      ),
-
-      // 3. BARRA DE NAVEGACIÓN INFERIOR DINÁMICA
+      // 3. BARRA DE NAVEGACIÓN INFERIOR
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
@@ -354,7 +160,230 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  // --- WIDGETS AUXILIARES ---
+  // --- MÉTODOS AUXILIARES ---
+
+  Widget _buildPanelInicioPrincipal(String driverPlate, String driverName) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildTabItem("MI VEHÍCULO"),
+                _buildTabItem("TURNOS"),
+                _buildTabItem("ALERTAS"),
+                _buildTabItem("PERFIL"),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          if (_selectedTab == "MI VEHÍCULO") ...[
+            _buildModuloVehiculoCompleto(driverPlate, driverName),
+          ] else ...[
+            if (_selectedTab == "TURNOS")
+              _buildModulosPlaceholder(
+                "Gestión de Cronogramas",
+                "No registras más turnos complementarios asignados para esta semana.",
+              ),
+            if (_selectedTab == "ALERTAS")
+              _buildModulosPlaceholder(
+                "Reportes Viales AMT",
+                "Historial consolidado de contraflujos activos, obras civiles y fotomultas en Quito.",
+              ),
+            if (_selectedTab == "PERFIL")
+              _buildModulosPlaceholder(
+                "Datos Institucionales",
+                "Licencia Tipo: E Profesional\nPuntos de Control: 30/30 Vigentes\nEntidad: Agencia Metropolitana de Tránsito.",
+              ),
+          ],
+
+          const SizedBox(height: 16),
+          _buildCardAsistenteIA(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModuloVehiculoCompleto(String driverPlate, String driverName) {
+    return Column(
+      children: [
+        Card(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Estado Vehicular",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Icon(Icons.check_circle, color: greenColor, size: 24),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: greenColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    "VEHÍCULO OPERATIVO",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildDataRow("Placa:", driverPlate),
+                _buildDataRow("Año/Modelo:", "2023 / Nissan Versa"),
+                _buildDataRow("Propietario:", driverName),
+                _buildDataRow("Último Mantenimiento:", "15 Oct 2025"),
+                const Padding(
+                  padding: EdgeInsets.only(left: 100, top: 2),
+                  child: Text(
+                    "(Próximo: 15 Dic 2026 - Aceite)",
+                    style: TextStyle(fontSize: 11, color: Colors.orange),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Turnos de Hoy",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // 🛠️ CORRECCIÓN AQUÍ: Agregado Expanded para mitigar el desborde horizontal de los textos fijos
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "• Turno A: 08:00 - 14:00",
+                            style: TextStyle(color: Colors.black87),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            "• Turno B: 09:00 - 14:00",
+                            style: TextStyle(color: Colors.black87),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            "• Turno C: 12:00 - 18:00",
+                            style: TextStyle(color: Colors.black87),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8), // Separador de contingencia
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ReportView(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        "Ver Mapa\nDetallado",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Alertas Recientes",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildAlertTile(
+                  Icons.traffic_rounded,
+                  "Traffic: Av. Amazonas congestionado",
+                  "10m ago",
+                ),
+                const Divider(height: 16),
+                _buildAlertTile(
+                  Icons.health_and_safety_rounded,
+                  "Safety: Recuerda usar el cinturón",
+                  "1h ago",
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildTabItem(String text) {
     final bool isActive = _selectedTab == text;
@@ -574,6 +603,9 @@ class _HomeViewState extends State<HomeView> {
             children: [
               Text(
                 title,
+                maxLines:
+                    1, // 🛠️ CORRECCIÓN: Previene desbordes si la alerta devuelta es muy larga
+                overflow: TextOverflow.ellipsis, // Agrega "..." si no entra
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
