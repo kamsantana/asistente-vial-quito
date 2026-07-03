@@ -1,4 +1,5 @@
-import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_notifier.dart';
@@ -14,67 +15,37 @@ class PerfilView extends StatefulWidget {
 }
 
 class _PerfilViewState extends State<PerfilView> {
-  // 🔥 El controlador del flujo en tiempo real para los datos del conductor
-  late StreamController<Map<String, dynamic>> _profileStreamController;
-
   // Colores corporativos basados en tu HomeView
   static const Color primaryColor = Color(0xFF0F3077); // Azul profundo Quito
   static const Color accentColor = Color(0xFFE30613); // Rojo corporativo
   static const Color backgroundColor = Color(0xFFF5F7FA);
 
-  @override
-  void initState() {
-    super.initState();
-    _profileStreamController = StreamController<Map<String, dynamic>>();
-    _conectarPerfilTiempoReal();
-  }
-
-  @override
-  void dispose() {
-    _profileStreamController
-        .close(); // 🛠️ Liberamos memoria al destruir el widget
-    super.dispose();
-  }
-
-  /// 🌐 CONEXIÓN DE PERFIL EN TIEMPO REAL
-  void _conectarPerfilTiempoReal() {
-    // 1. Datos del estado actual del conductor
-    final datosIniciales = {
-      "tipo_licencia": "E Profesional",
-      "puntos": "30 / 30 Vigentes",
-      "puntos_color": Colors.black87,
-      "estado_credencial": "Conductor AMT Activo",
-    };
-    _profileStreamController.add(datosIniciales);
-
-    // 2. Simulación: Cambio en tiempo real
-    Timer(const Duration(seconds: 6), () {
-      if (mounted) {
-        _profileStreamController.add({
-          "tipo_licencia": "E Profesional",
-          "puntos": "28 / 30 (Actualizado en vivo)",
-          "puntos_color": accentColor,
-          "estado_credencial": "Revisión de Puntos",
-        });
-      }
-    });
-  }
+  // Instancias de Firebase
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
+    final String? uid = _auth.currentUser?.uid;
+
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: StreamBuilder<Map<String, dynamic>>(
-        stream: _profileStreamController.stream,
+      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: uid != null
+            ? _firestore.collection('usuarios').doc(uid).snapshots()
+            : const Stream.empty(),
         builder: (context, snapshot) {
-          // Pantalla de carga mientras se sincroniza el perfil
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(color: primaryColor),
             );
           }
 
-          final datos = snapshot.data ?? {};
+          final data = snapshot.data?.data();
+
+          final String placaReal = data?['licensePlate'] ?? "Asignando...";
+          final String tipoLicencia = data?['tipo_licencia'] ?? "E Profesional";
+          final String puntosValidos = data?['puntos'] ?? "30 / 30 Vigentes";
 
           return SingleChildScrollView(
             child: Column(
@@ -134,9 +105,9 @@ class _PerfilViewState extends State<PerfilView> {
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text(
-                          datos['estado_credencial'] ?? "Cargando...",
-                          style: const TextStyle(
+                        child: const Text(
+                          "Conductor AMT Activo",
+                          style: TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -182,17 +153,24 @@ class _PerfilViewState extends State<PerfilView> {
                               ),
                               const Divider(height: 24),
                               _buildPerfilItem(
+                                Icons.directions_car_rounded,
+                                "Placa Vehicular",
+                                placaReal,
+                                Colors.black87,
+                              ),
+                              const Divider(height: 24),
+                              _buildPerfilItem(
                                 Icons.credit_card_rounded,
                                 "Tipo de Licencia",
-                                datos['tipo_licencia'] ?? "---",
+                                tipoLicencia,
                                 Colors.black87,
                               ),
                               const Divider(height: 24),
                               _buildPerfilItem(
                                 Icons.stars_rounded,
                                 "Puntos de Control",
-                                datos['puntos'] ?? "---",
-                                datos['puntos_color'] ?? Colors.black87,
+                                puntosValidos,
+                                Colors.black87,
                               ),
                               const Divider(height: 24),
                               _buildPerfilItem(
@@ -213,9 +191,7 @@ class _PerfilViewState extends State<PerfilView> {
                         width: double.infinity,
                         height: 50,
                         child: OutlinedButton.icon(
-                          onPressed: () {
-                            // Acción para refrescar o ver detalles extendidos
-                          },
+                          onPressed: () {},
                           icon: const Icon(
                             Icons.verified_user_rounded,
                             color: primaryColor,
@@ -241,19 +217,17 @@ class _PerfilViewState extends State<PerfilView> {
 
                       const SizedBox(height: 16),
 
-                      // 🚪 BOTÓN DE CERRAR SESIÓN MODERNO
+                      // 🚪 BOTÓN DE CERRAR SESIÓN
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            // 1. Llamamos al logout pasándole el context para activar el SnackBar
                             Provider.of<AuthNotifier>(
                               context,
                               listen: false,
                             ).logout(context);
 
-                            // 2. Navegamos al login limpiando el stack de pantallas anteriores
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
@@ -274,8 +248,7 @@ class _PerfilViewState extends State<PerfilView> {
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                accentColor, // Color Rojo Corporativo
+                            backgroundColor: accentColor,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),

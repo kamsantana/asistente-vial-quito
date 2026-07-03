@@ -1,23 +1,25 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+// 🛠️ 1. IMPORTACIÓN OBLIGATORIA
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AiParserDataSource {
   final Dio _dio = Dio();
 
-  // 🔑 SEGURO: La API Key ahora se inyecta desde las variables de entorno
-  // Ya no está hardcoded, evitando bloqueos o robos en GitHub.
-  static const String _apiKey = String.fromEnvironment('GROQ_API_KEY');
+  // 🟢 2. MODIFICADO: Lee la clave desde el archivo .env de forma segura
+  final String _apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
 
   final String _baseUrl = "https://api.groq.com/openai/v1/chat/completions";
 
   Future<Map<String, dynamic>> cleanJsonWithGemini(
     Map<String, dynamic> denseJson,
   ) async {
-    // Validación preventiva por si olvidas pasar la bandera en la consola
+    // 🔕 Volvemos a activar la validación por si acaso el archivo .env no se leyó bien
     if (_apiKey.isEmpty) {
       print(
-        "⚠️ Alerta: La variable 'GROQ_API_KEY' está vacía. Verifica tu config.json",
+        "⚠️ Alerta crítica: No se cargó la API Key desde el .env. Usando modo local alterno.",
       );
+      return _getFallbackResponse(denseJson);
     }
 
     final prompt =
@@ -39,10 +41,10 @@ class AiParserDataSource {
         _baseUrl,
         options: Options(
           headers: {
-            "Authorization": "Bearer $_apiKey",
+            // Se usa la variable dinámica sin el static const anterior
+            "Authorization": "Bearer ${_apiKey.trim()}",
             "Content-Type": "application/json",
           },
-          // 🛠️ Evita que la Web se quede colgada indefinidamente si el navegador bloquea la petición
           connectTimeout: const Duration(seconds: 5),
           receiveTimeout: const Duration(seconds: 5),
         ),
@@ -67,9 +69,6 @@ class AiParserDataSource {
       }
     } on DioException catch (de) {
       print("❌ Error de red en Groq (Dio): ${de.response?.data ?? de.message}");
-
-      // 🌐 Si estás en entorno Web y salta un error de red o CORS, devolvemos un fallback estructurado
-      // para que la interfaz gráfica dibuje la tarjeta sin romperse.
       print(
         "🌐 Entorno Web: Retornando reporte simulado directo para evitar bloqueo en la UI.",
       );
@@ -80,7 +79,6 @@ class AiParserDataSource {
     }
   }
 
-  // 🛠️ Función de respaldo que genera las llaves exactas que necesita tu UI si la red web falla
   Map<String, dynamic> _getFallbackResponse(Map<String, dynamic> denseJson) {
     final mockId = denseJson['id'] ?? denseJson['_id'] ?? 'ID-MOCK';
     final mockTitle =

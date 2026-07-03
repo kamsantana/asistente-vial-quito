@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/report_notifier.dart';
+// 🟢 IMPORT CORRECTO: Apunta directamente a la nueva estructura dentro de src/
+import 'package:asitente_vial/src/core/services/map_navigation_service.dart';
+// 🚨 NUEVO IMPORT: Traemos el formulario que creaste en la carpeta views
+import 'crear_reporte_view.dart';
 
 class ReportView extends StatefulWidget {
   const ReportView({super.key});
@@ -23,10 +27,13 @@ class _ReportViewState extends State<ReportView> {
   Color _getGravedadColor(String nivel) {
     switch (nivel.toUpperCase()) {
       case 'ALTO':
+      case 'ALTA': // Añadido soporte por si viene en femenino
         return Colors.redAccent;
       case 'MEDIO':
+      case 'MEDIA':
         return Colors.orangeAccent;
       case 'BAJO':
+      case 'BAJA':
         return Colors.green;
       default:
         return Colors.blueGrey;
@@ -165,6 +172,32 @@ class _ReportViewState extends State<ReportView> {
                               height: 1.3,
                             ),
                           ),
+
+                          // 🗺️ BOTÓN DE ACCIÓN PARA ABRIR GOOGLE MAPS
+                          const SizedBox(height: 16),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(
+                                  0xFF0D1E4C,
+                                ), // Azul marino del panel
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              icon: const Icon(Icons.map, size: 18),
+                              label: const Text('Ver Mapa Detallado'),
+                              onPressed: () {
+                                final destinoQuito =
+                                    "${report.titulo}, Quito, Ecuador";
+                                MapNavigationService.openRouteInMaps(
+                                  destinoQuito,
+                                );
+                              },
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -173,6 +206,24 @@ class _ReportViewState extends State<ReportView> {
               );
           }
         },
+      ),
+
+      // 🔥 BOTÓN FLOTANTE INTEGRADO AL FINAL DEL SCAFFOLD:
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          // Navega directamente a la pantalla del formulario
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CrearReporteView()),
+          );
+        },
+        label: const Text(
+          'Reportar Siniestro',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        icon: const Icon(Icons.add_alert_rounded),
+        backgroundColor: Colors.amber[700],
+        foregroundColor: Colors.white,
       ),
     );
   }

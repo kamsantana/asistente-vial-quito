@@ -18,22 +18,43 @@ class ReportRepositoryImpl implements ReportRepository {
   @override
   Future<List<ReportEntity>> getSmartReports() async {
     try {
-      // 1. Consume API externa densa vía Dio
-      final rawDenseJson = await remoteDataSource.fetchDenseTrafficReport();
+      // 1. Consumimos la lista completa de reportes desde Cloud Firestore
+      final List<Map<String, dynamic>> rawReportsList = await remoteDataSource
+          .fetchDenseTrafficReportsList();
 
-      // 2. Filtra e integra el Smart Data Parsing con Gemini
-      final cleanJson = await aiDataSource.cleanJsonWithGemini(rawDenseJson);
+      List<ReportEntity> listaFinal = [];
 
-      // 3. Respalda localmente en SQLite para soporte Offline
-      await localDataSource.cacheReport(cleanJson);
+      // 2. Procesamos cada reporte de la lista de forma dinámica
+      for (var rawReport in rawReportsList) {
+        Map<String, dynamic> cleanJson = rawReport;
 
-      return [ReportEntity.fromJson(cleanJson)];
+        // Si el reporte viene directo de la API densa o requiere parsing de Gemini, se procesa.
+        // Si ya fue pre-procesado en el formulario, lo pasamos directo.
+        if (rawReport['resumen_ia'] ==
+            'Reporte manual ingresado por el conductor en escena.') {
+          cleanJson = rawReport;
+        } else {
+          // Filtrado e integración en tiempo real con Gemini para reportes externos/crudos
+          cleanJson = await aiDataSource.cleanJsonWithGemini(rawReport);
+        }
+
+        // 3. Respaldo local de cada reporte individual en SQLite para soporte Offline
+        await localDataSource.cacheReport(cleanJson);
+
+        // 4. Transformamos usando tu factory oficial .fromJson
+        listaFinal.add(ReportEntity.fromJson(cleanJson));
+      }
+
+      return listaFinal;
     } catch (e) {
-      // 4. FALLBACK OFFLINE: Si no hay red, lee directo de la base local
+      print("⚠️ Error en red/Firestore, activando FALLBACK OFFLINE: $e");
+
+      // 5. FALLBACK OFFLINE: Si no hay internet en Quito, lee directo de SQLite
       final localReports = await localDataSource.getCachedReports();
       if (localReports.isNotEmpty) {
         return localReports.map((json) => ReportEntity.fromJson(json)).toList();
       }
+
       throw Exception(
         "Sin conexión a internet y sin respaldos en la base de datos.",
       );

@@ -1,76 +1,75 @@
+import 'package:cloud_firestore/cloud_firestore.dart'; // 🔥 IMPORTACIÓN DE FIREBASE
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart'; // 🛠️ IMPORTACIÓN CLAVE: Para detectar la Web
+import 'package:flutter/foundation.dart'; // 🛠️ Para detectar la Web
 
 class RemoteApiDataSource {
   final Dio _dio;
+
+  // 🔥 Instancia del cliente de Firestore
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   RemoteApiDataSource(this._dio);
 
-  Future<Map<String, dynamic>> fetchDenseTrafficReport() async {
+  /// Cambiamos la firma para que devuelva una lista de mapas (múltiples reportes)
+  Future<List<Map<String, dynamic>>> fetchDenseTrafficReportsList() async {
     try {
-      // ⏱️ Simulamos un retraso de red de 1 segundo para hacerlo realista
-      await Future.delayed(const Duration(seconds: 1));
+      print("📡 Consultando incidentes reales desde Cloud Firestore...");
 
-      // 🛠️ PARCHE WEB: Si estás en Chrome, evitamos que rompa el flujo más adelante
-      if (kIsWeb) {
-        print(
-          "🌐 Entorno Web detectado: Retornando reporte simulado directo para la UI.",
-        );
-        return {
-          "status_code": "OK_200",
-          "timestamp": 1718670000,
-          "metadata": {
-            "source": "Agencia Metropolitana de Tránsito Quito",
-            "operator_id": "AMT-405",
-            "zone": "Pichincha/Quito/Centro Histórico",
-          },
-          "payload": {
-            "incidente_vial":
-                "Colisión múltiple entre un autobús articulado del Trolebús y dos vehículos particulares.",
-            "ubicación_exacta":
-                "Av. Maldonado y Flores, sector Santo Domingo, sentido sur-norte.",
-            "afectacion_carriles":
-                "Obstrucción total de los dos carriles del sistema integrado.",
-            "personal_en_escena": ["AMT Unidad 12", "Bomberos Quito"],
-            "detalles_tecnicos_adicionales":
-                "Derrame de combustible sobre calzada húmeda. Tráfico pesado.",
-          },
-          // 💡 Añadimos estos campos extra simulando que la IA ya lo procesó
-          // para saltarnos el error de Groq en la Web
-          "id": "1",
-          "titulo": "Colisión en Sector Santo Domingo",
-          "resumen_ia":
-              "Choque entre un Trolebús y dos autos causa obstrucción total de carriles exclusivos en la Av. Maldonado. Se reporta derrame de combustible y demoras de 45 minutos.",
-          "nivel_gravedad": "ALTA",
-        };
+      // 1. Obtenemos los documentos de la colección 'reportes' ordenados por los más recientes
+      final querySnapshot = await _firestore
+          .collection('reportes')
+          .orderBy('fecha_sincronizacion', descending: true)
+          .get()
+          .timeout(const Duration(seconds: 5));
+
+      // 2. Si la base de datos está vacía, insertamos un respaldo o retornamos vacío
+      if (querySnapshot.docs.isEmpty) {
+        print("ℹ️ No hay reportes en la nube. Retornando lista vacía.");
+        return [];
       }
 
-      // 📝 Código original para Android / iOS / Desktop (pasa limpio hacia Groq)
-      return {
-        "status_code": "OK_200",
-        "timestamp": 1718670000,
-        "metadata": {
-          "source": "Agencia Metropolitana de Tránsito Quito",
-          "operator_id": "AMT-405",
-          "zone": "Pichincha/Quito/Centro Histórico",
-        },
-        "payload": {
-          "incidente_vial":
-              "Colisión múltiple entre un autobús articulado del Trolebús y dos vehículos particulares tipo sedan de color negro y gris.",
-          "ubicación_exacta":
-              "Av. Maldonado y Flores, sector Santo Domingo, sentido sur-norte.",
-          "afectacion_carriles":
-              "Obstrucción total de los dos carriles del sistema integrado y un carril convencional.",
-          "personal_en_escena": [
-            "AMT Unidad 12",
-            "Bomberos Quito Camión de Rescate",
-            "Cruz Roja Ambulancia 3",
-          ],
-          "detalles_tecnicos_adicionales":
-              "Derrame de combustible tipo diésel sobre la calzada húmeda por precipitaciones. Tráfico pesado con tiempos de espera de aproximadamente 45 minutos. Desvíos activos por la Av. Mariscal Sucre.",
-        },
-      };
+      // 3. Mapeamos cada documento de Firestore al formato que tu ReportEntity/Model procesa
+      List<Map<String, dynamic>> listaFormateada = [];
+
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+
+        listaFormateada.add({
+          "id": doc.id,
+          "titulo": data['titulo'] ?? 'Incidente Vial',
+          "nivel_gravedad": data['nivel_gravedad'] ?? 'MEDIA',
+          "resumen_ia":
+              data['resumen_ia'] ??
+              (data['incidente_vial'] ?? 'Sin descripción disponible.'),
+          "ubicacion": data['ubicacion'] ?? 'Quito, Ecuador',
+          "timestamp": data['fecha_sincronizacion'] != null
+              ? (data['fecha_sincronizacion'] as Timestamp)
+                    .millisecondsSinceEpoch
+              : DateTime.now().millisecondsSinceEpoch,
+        });
+      }
+
+      return listaFormateada;
     } catch (e) {
-      throw Exception("Error al obtener datos crudos de la API externa: $e");
+      print("❌ Error al leer Firestore: $e");
+      // Si la red falla por completo en Web, devolvemos al menos un reporte local de contingencia
+      return [
+        {
+          "id": "fallback_1",
+          "titulo": "Colisión en Sector Santo Domingo",
+          "nivel_gravedad": "ALTA",
+          "resumen_ia":
+              "Choque entre un Trolebús y dos autos causa obstrucción total en la Av. Maldonado. (Modo Contingencia Local)",
+          "ubicacion": "Av. Maldonado y Flores",
+          "timestamp": DateTime.now().millisecondsSinceEpoch,
+        },
+      ];
     }
+  }
+
+  /// Mantenemos el método viejo vacío por compatibilidad si lo compila algún Repositorio temporalmente
+  Future<Map<String, dynamic>> fetchDenseTrafficReport() async {
+    final list = await fetchDenseTrafficReportsList();
+    return list.isNotEmpty ? list.first : {};
   }
 }

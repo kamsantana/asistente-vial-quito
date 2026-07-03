@@ -45,7 +45,6 @@ class AuthNotifier extends ChangeNotifier {
               children: [
                 const Icon(Icons.check_circle_rounded, color: Colors.white),
                 const SizedBox(width: 10),
-                // 🛠️ CORRECCIÓN: Envolver en Expanded para evitar desbordes con nombres largos
                 Expanded(
                   child: Text(
                     "¡Iniciado sesión con éxito! Bienvenido, ${_currentDriver?.name ?? ''}",
@@ -69,6 +68,7 @@ class AuthNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 📝 REGISTRO DE CONDUCTOR CON PLACA AUTOMÁTICA
   Future<void> register({
     required String name,
     required String email,
@@ -80,11 +80,13 @@ class AuthNotifier extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // 🚀 Mandamos la placa en mayúsculas fijas al Caso de Uso
+      // para que se guarde directo en el documento de Firestore.
       _currentDriver = await registerUseCase.execute(
         name: name,
         email: email,
         password: password,
-        licensePlate: licensePlate,
+        licensePlate: licensePlate.trim().toUpperCase(),
       );
       _status = AuthStatus.authenticated;
     } catch (e) {
@@ -99,15 +101,13 @@ class AuthNotifier extends ChangeNotifier {
     _currentDriver = null;
     _status = AuthStatus.initial;
 
-    // 🔵 Disparamos el SnackBar informativo de sesión cerrada
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Row(
             children: [
               Icon(Icons.logout_rounded, color: Colors.white),
-              const SizedBox(width: 10),
-              // 🛠️ CORRECCIÓN: También protegido con Expanded por si acaso
+              SizedBox(width: 10),
               Expanded(child: Text("Cerrado sesión con éxito")),
             ],
           ),

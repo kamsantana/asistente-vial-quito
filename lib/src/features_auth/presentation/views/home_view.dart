@@ -1,3 +1,4 @@
+import 'dart:convert'; // 🌟 Agregado para procesar jsonDecode
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_notifier.dart';
@@ -9,6 +10,7 @@ import 'package:asitente_vial/src/features_reports/presentation/views/report_vie
 import 'vehiculo_view.dart';
 import 'notificaciones_view.dart';
 import 'perfil_view.dart';
+import '../widgets/mapa_dinamico_widget.dart'; // 🗺️ Importamos tu componente del mapa
 
 const Color primaryColor = Color(0xFF0F3077); // Azul profundo Quito
 const Color accentColor = Color(0xFFE30613); // Rojo corporativo
@@ -294,7 +296,6 @@ class _HomeViewState extends State<HomeView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // 🛠️ CORRECCIÓN AQUÍ: Agregado Expanded para mitigar el desborde horizontal de los textos fijos
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,7 +317,7 @@ class _HomeViewState extends State<HomeView> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8), // Separador de contingencia
+                    const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: () {
                         Navigator.push(
@@ -488,6 +489,7 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  // 🌟 MODIFICADO: Ahora extrae dinámicamente el texto y dibuja el mapa en el diálogo
   void _consultarConGemini() async {
     final consulta = _aiController.text.trim();
     if (consulta.isEmpty) return;
@@ -496,13 +498,30 @@ class _HomeViewState extends State<HomeView> {
       _isLoadingAi = true;
     });
 
-    final respuesta = await _askAiUseCase.execute(consulta);
+    final respuestaRaw = await _askAiUseCase.execute(consulta);
 
     setState(() {
       _isLoadingAi = false;
     });
 
     if (!mounted) return;
+
+    // 🛠️ Decodificamos el JSON que configuramos en la IA
+    Map<String, dynamic> datosIa;
+    try {
+      datosIa = jsonDecode(respuestaRaw);
+    } catch (e) {
+      // Por si acaso la IA devuelve texto plano en algún error
+      datosIa = {"text": respuestaRaw, "lat": null, "lng": null};
+    }
+
+    String textoParaMostrar = datosIa['text'] ?? "Sin respuesta.";
+    double? latDestino = datosIa['lat'] != null
+        ? double.tryParse(datosIa['lat'].toString())
+        : null;
+    double? lngDestino = datosIa['lng'] != null
+        ? double.tryParse(datosIa['lng'].toString())
+        : null;
 
     showDialog(
       context: context,
@@ -518,10 +537,25 @@ class _HomeViewState extends State<HomeView> {
             ),
           ],
         ),
-        content: SingleChildScrollView(
-          child: Text(
-            respuesta,
-            style: const TextStyle(fontSize: 13, color: Colors.black87),
+        content: SizedBox(
+          width: 450, // Forzamos un ancho cómodo para el mapa en Web
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  textoParaMostrar,
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+
+                // 🗺️ SI LA IA ENVIÓ COORDENADAS, PINTAMOS EL MAPA EN EL DIÁLOGO AUTOMÁTICAMENTE
+                if (latDestino != null && lngDestino != null) ...[
+                  const SizedBox(height: 16),
+                  MapaDinamicoWidget(lat: latDestino, lng: lngDestino),
+                ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -603,9 +637,8 @@ class _HomeViewState extends State<HomeView> {
             children: [
               Text(
                 title,
-                maxLines:
-                    1, // 🛠️ CORRECCIÓN: Previene desbordes si la alerta devuelta es muy larga
-                overflow: TextOverflow.ellipsis, // Agrega "..." si no entra
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,

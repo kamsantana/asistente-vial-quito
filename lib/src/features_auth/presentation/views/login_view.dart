@@ -116,7 +116,8 @@ class _LoginViewState extends State<LoginView> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
                       labelText: 'Correo Electrónico',
-                      hintText: 'javier@quito.com',
+                      hintText:
+                          'ejemplo@correo.com', // 🟢 Cambiado aquí para eliminar javier@quito.com
                       prefixIcon: Icon(
                         Icons.email_outlined,
                         color: primaryColor,
@@ -170,7 +171,7 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   const SizedBox(height: 30),
 
-                  // 🛠️ BOTÓN CORREGIDO: Enuelto en Center y SizedBox para limitar su tamaño horizontal
+                  // BOTÓN: Envuelto en Center y SizedBox para limitar su tamaño horizontal
                   Center(
                     child: SizedBox(
                       width:

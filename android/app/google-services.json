@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "678159510040",
+    "project_id": "asistencia-vial-quito",
+    "storage_bucket": "asistencia-vial-quito.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:678159510040:android:fb927eca3db97c554db16d",
+        "android_client_info": {
+          "package_name": "com.example.asitente_vial"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDB26zwBIVvaRhPTralw4XFNfrjtCe8zJQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

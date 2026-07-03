@@ -18,18 +18,41 @@ dependencies:
   # Networking (Cliente HTTP robusto ideal para APIs complejas)
   dio: ^5.7.0
 
-  # Inteligencia Artificial (SDK Oficial de Google Gemini - Versión compatible con tu entorno)
+  # Inteligencia Artificial (SDK Oficial de Google Gemini)
   google_generative_ai: ^0.4.7
 
   # Base de Datos Local Offline
-  sqflite: ^2.4.1
+  sqflite: ^2.4.0
   path: ^1.9.0
-  sqflite_common_ffi: ^2.4.0+3
+  sqflite_common_ffi: ^2.4.0
+  url_launcher: ^6.3.0            
+  
+  # Mapas y Geolocalización (Actualizado para compatibilidad con AGP 8.9.1 y Kotlin 2.1)
+  google_maps_flutter: ^2.14.0
+  flutter_map: ^8.3.0
+  latlong2: ^0.9.1                
+  firebase_core: ^4.11.0
+  cloud_firestore: ^6.6.0
+  firebase_auth: ^6.5.4
+  flutter_dotenv: ^6.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  # Herramienta para generación automática de íconos de la app
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
+
+  # Registro de recursos e imágenes de la app
+  assets:
+    - .env
+    - assets/app_icono.png
+
+# Configuración del generador de íconos
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/app_icono.png"

@@ -6,6 +6,17 @@ import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 // ==========================================
+// 🛠️ IMPORTACIÓN DE VARIABLES DE ENTORNO
+// ==========================================
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+// ==========================================
+// 🔥 IMPORTACIONES NUEVAS DE FIREBASE
+// ==========================================
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart'; // Generado automáticamente por flutterfire configure
+
+// ==========================================
 // 📁 IMPORTACIONES: FEATURE AUTH
 // ==========================================
 import 'src/features_auth/data/datasources/auth_remote_datasources.dart';
@@ -26,7 +37,14 @@ import 'src/features_reports/domain/usecases/get_smart_reports_usecase.dart';
 import 'src/features_reports/presentation/controllers/report_notifier.dart';
 
 void main() async {
+  // Asegura que los canales nativos estén listos antes de inicializar Firebase o bases locales
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 🛠️ CARGAR EL ARCHIVO .ENV
+  await dotenv.load(fileName: ".env");
+
+  // 🔥 0. INICIALIZACIÓN DE FIREBASE
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // 🛠️ CORRECCIÓN: Si es Web, evitamos usar 'Platform' por completo
   if (!kIsWeb) {
@@ -68,6 +86,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        // 🛠️ CORREGIDO: Se removió la duplicación del texto "Change"
         ChangeNotifierProvider(
           create: (_) => AuthNotifier(
             loginUseCase: loginUseCase,
